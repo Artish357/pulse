@@ -80,15 +80,19 @@ def open_url(url: str, cache_dir: str = None, num_attempts: int = 10, verbose: b
                     print(".", end="", flush=True)
 
     # Save to cache.
+    file_as_bytes = io.BytesIO(url_data)
     if cache_dir is not None:
-        safe_name = re.sub(r"[^0-9a-zA-Z-._]", "_", url_name)
-        cache_file = os.path.join(cache_dir, url_md5 + "_" + safe_name)
-        temp_file = os.path.join(cache_dir, "tmp_" + uuid.uuid4().hex + "_" + url_md5 + "_" + safe_name)
-        os.makedirs(cache_dir, exist_ok=True)
-        with open(temp_file, "wb") as f:
-            f.write(url_data)
-        os.replace(temp_file, cache_file) # atomic
-        if(return_path): return cache_file
-
+        if(return_path): return cache_file(cache_dir,file_as_bytes)
+    file_as_bytes.seek(0)
     # Return data as file object.
-    return io.BytesIO(url_data)
+    return file_as_bytes
+
+def cache_file(cache_dir, url_data, url):
+    url_md5 = hashlib.md5(url.encode("utf-8")).hexdigest()
+    cache_file_name = os.path.join(cache_dir, url_md5 + "_")
+    temp_file = os.path.join(cache_dir, "tmp_" + uuid.uuid4().hex + "_" + url_md5 + "_")
+    os.makedirs(cache_dir, exist_ok=True)
+    with open(temp_file, "wb") as f:
+        f.write(url_data)
+    os.replace(temp_file, cache_file_name) # atomic
+    if(return_path): return cache_file_name
